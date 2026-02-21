@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Ghost</title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="ghost-icon">👻</span>
+        <h1>Project Ghost</h1>
+      </div>
+      <button class="btn-settings" id="btnSettings" title="设置">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42">
+          </path>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Search Section -->
+    <section class="search-section">
+      <div class="search-box">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+        <input type="text" id="searchInput" placeholder="用自然语言搜索你的幽灵标签页..." autocomplete="off">
+        <div class="search-spinner" id="searchSpinner"></div>
+      </div>
+      <div class="search-actions">
+        <button class="btn-search" id="btnVectorSearch" title="向量语义搜索">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          语义搜索
+        </button>
+        <button class="btn-search btn-llm" id="btnLLMSearch" title="LLM 智能搜索（需配置 API）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V12h3a3 3 0 0 1 3 3v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a3 3 0 0 1 3-3h3V9.5A4 4 0 0 1 12 2z">
+            </path>
+          </svg>
+          AI 搜索
+        </button>
+      </div>
+    </section>
+
+    <!-- Vanish Button -->
+    <section class="vanish-section">
+      <button class="btn-vanish" id="btnVanish">
+        <span class="vanish-icon">🫥</span>
+        <span>收纳当前标签页</span>
+        <kbd>Alt+G</kbd>
+      </button>
+    </section>
+
+    <!-- Search Results -->
+    <section class="results-section" id="resultsSection" style="display:none;">
+      <div class="results-header">
+        <h2 class="section-title">搜索结果</h2>
+        <div class="search-mode-badge" id="searchModeBadge"></div>
+      </div>
+      <!-- LLM Keywords Display -->
+      <div class="keywords-bar" id="keywordsBar" style="display:none;">
+        <span class="keywords-label">🔑 关键词:</span>
+        <div class="keywords-list" id="keywordsList"></div>
+      </div>
+      <div class="results-list" id="resultsList"></div>
+    </section>
+
+    <!-- Ghost Tabs List -->
+    <section class="ghost-tabs-section">
+      <div class="section-header">
+        <h2 class="section-title">
+          <span class="ghost-count" id="ghostCount">0</span>
+          个幽灵标签页
+        </h2>
+        <button class="btn-refresh" id="btnRefresh" title="刷新列表">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="ghost-tabs-list" id="ghostTabsList">
+        <div class="empty-state" id="emptyState">
+          <span class="empty-ghost">👻</span>
+          <p>还没有幽灵标签页</p>
+          <p class="empty-hint">点击上方按钮收纳当前标签页</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings Panel (hidden by default) -->
+    <section class="settings-panel" id="settingsPanel" style="display:none;">
+      <h2 class="section-title">设置</h2>
+
+      <div class="setting-group">
+        <h3 class="setting-group-title">通用</h3>
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">允许自动释放内存</span>
+            <span class="setting-desc">系统内存紧张时允许 Chrome 自动丢弃幽灵标签页</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="toggleAutoDiscard">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-item status-row">
+          <span class="setting-label">后端状态</span>
+          <span class="backend-status" id="backendStatus">检测中...</span>
+        </div>
+      </div>
+
+      <div class="setting-group">
+        <h3 class="setting-group-title">🤖 LLM 配置 (OpenAI 兼容)</h3>
+        <div class="setting-item vertical">
+          <span class="setting-label">API Base URL</span>
+          <input type="text" class="setting-input wide" id="llmBaseUrl" placeholder="https://api.openai.com/v1"
+            value="https://api.openai.com/v1">
+        </div>
+        <div class="setting-item vertical">
+          <span class="setting-label">API Key</span>
+          <input type="password" class="setting-input wide" id="llmApiKey" placeholder="sk-...">
+        </div>
+        <div class="setting-item vertical">
+          <span class="setting-label">Model</span>
+          <input type="text" class="setting-input wide" id="llmModel" placeholder="gpt-4o-mini" value="gpt-4o-mini">
+        </div>
+        <div class="setting-item">
+          <span class="llm-config-status" id="llmConfigStatus">未配置</span>
+          <button class="btn-save-llm" id="btnSaveLLM">保存 LLM 配置</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+
+</html>

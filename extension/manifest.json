@@ -1,0 +1,49 @@
+{
+    "manifest_version": 3,
+    "name": "Project Ghost",
+    "version": "1.0.0",
+    "description": "内存常驻型 AI 标签页管理系统 — 不关闭，只隐身",
+    "permissions": [
+        "tabs",
+        "sidePanel",
+        "scripting",
+        "storage",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "action": {
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        },
+        "default_title": "Project Ghost"
+    },
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+    "commands": {
+        "vanish-tab": {
+            "suggested_key": {
+                "default": "Alt+G"
+            },
+            "description": "Vanish current tab to ghost window"
+        },
+        "summon-panel": {
+            "suggested_key": {
+                "default": "Alt+S"
+            },
+            "description": "Open search side panel"
+        }
+    }
+}
