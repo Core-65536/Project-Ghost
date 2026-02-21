@@ -748,6 +748,52 @@ async function saveLLMConfig(config) {
     }
 }
 
+/**
+ * Agent 对话 — 发起 SSE 请求并收集所有事件
+ */
+async function agentChat(query) {
+    try {
+        const res = await fetch(`${BACKEND_URL}/api/agent-chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query }),
+        });
+
+        if (!res.ok) {
+            return { error: `HTTP ${res.status}` };
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        const events = [];
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // 保留未完成的行
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6).trim();
+                    if (data === '[DONE]') continue;
+                    try {
+                        events.push(JSON.parse(data));
+                    } catch (_) { }
+                }
+            }
+        }
+
+        return { events };
+    } catch (err) {
+        console.warn("[Ghost] Agent 对话失败:", err.message);
+        return { error: err.message };
+    }
+}
+
 // ─── 本地存储辅助函数 ────────────────────────────────────────
 
 async function storeGhostTab(url, metadata) {
@@ -810,6 +856,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 sendResponse(result);
                 break;
             }
+            case "agentChat": {
+                const result = await agentChat(msg.query);
+                sendResponse(result);
+                break;
+            }
+            case "batchSummon": {
+                // Agent 批量恢复标签页
+                const results = [];
+                for (const url of (msg.urls || [])) {
+                    const r = await summonTab(url, null);
+                    results.push({ url, ...r });
+                }
+                sendResponse({ success: true, results });
+                break;
+            }
             case "removeGhostTab": {
                 await removeGhostTab(msg.url);
                 sendResponse({ success: true });
@@ -844,3 +905,4 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })();
     return true; // 保持消息通道开启以进行异步响应
 });
+

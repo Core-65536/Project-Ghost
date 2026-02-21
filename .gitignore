@@ -4,6 +4,9 @@ backend/llm_config.json
 # 模型文件
 backend/models/
 
+# 向量数据库
+backend/chroma_data/
+
 # Python 虚拟环境
 backend/venv/
 

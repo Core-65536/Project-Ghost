@@ -353,6 +353,186 @@ btnSaveLLM.addEventListener("click", async () => {
     }
 });
 
+// ─── Agent 对话 ──────────────────────────────────────────────
+
+const btnAgentChat = document.getElementById("btnAgentChat");
+const agentSection = document.getElementById("agentSection");
+const agentChat = document.getElementById("agentChat");
+const btnCloseAgent = document.getElementById("btnCloseAgent");
+
+let agentActive = false;
+
+btnAgentChat.addEventListener("click", () => {
+    const query = searchInput.value.trim();
+    if (query) performAgentChat(query);
+});
+
+btnCloseAgent.addEventListener("click", () => {
+    agentSection.style.display = "none";
+    agentActive = false;
+});
+
+async function performAgentChat(query) {
+    agentActive = true;
+    agentSection.style.display = "block";
+    resultsSection.style.display = "none";
+    searchSpinner.classList.add("active");
+
+    // 清空并显示用户消息
+    agentChat.innerHTML = "";
+
+    // 用户消息
+    const userMsg = document.createElement("div");
+    userMsg.className = "agent-msg agent-msg-user";
+    userMsg.innerHTML = `<div class="agent-msg-label">你</div><div class="agent-msg-content">${escapeHtml(query)}</div>`;
+    agentChat.appendChild(userMsg);
+
+    // 思考过程容器
+    const thinkingContainer = document.createElement("div");
+    thinkingContainer.className = "agent-thinking-container";
+    thinkingContainer.innerHTML = `<div class="agent-thinking-header">
+        <span class="agent-thinking-icon">⚙️</span>
+        <span>推理过程</span>
+        <span class="agent-thinking-spinner"></span>
+    </div>
+    <div class="agent-thinking-steps"></div>`;
+    agentChat.appendChild(thinkingContainer);
+
+    const stepsContainer = thinkingContainer.querySelector(".agent-thinking-steps");
+
+    // 发送请求
+    const response = await chrome.runtime.sendMessage({
+        type: "agentChat",
+        query,
+    });
+
+    searchSpinner.classList.remove("active");
+
+    // 停止 spinner
+    const spinner = thinkingContainer.querySelector(".agent-thinking-spinner");
+    if (spinner) spinner.style.display = "none";
+
+    if (response?.error) {
+        const errorMsg = document.createElement("div");
+        errorMsg.className = "agent-msg agent-msg-error";
+        errorMsg.innerHTML = `<div class="agent-msg-content">❌ ${escapeHtml(response.error)}</div>`;
+        agentChat.appendChild(errorMsg);
+        agentChat.scrollTop = agentChat.scrollHeight;
+        return;
+    }
+
+    // 渲染事件
+    const events = response?.events || [];
+    let hasAnswer = false;
+
+    for (const event of events) {
+        switch (event.type) {
+            case "thinking": {
+                const step = document.createElement("div");
+                step.className = "agent-step agent-step-thinking";
+                step.innerHTML = `<span class="step-icon">🤔</span><span>${escapeHtml(event.message)}</span>`;
+                stepsContainer.appendChild(step);
+                break;
+            }
+            case "tool_call": {
+                const step = document.createElement("div");
+                step.className = "agent-step agent-step-tool";
+                const toolIcon = {
+                    search_tabs: "🔍",
+                    read_tab: "📖",
+                    list_tabs: "📋",
+                    batch_restore: "🚀",
+                }[event.tool] || "🔧";
+                const argsStr = event.arguments
+                    ? Object.entries(event.arguments).map(([k, v]) => {
+                        const val = Array.isArray(v) ? `[${v.length}项]` :
+                            typeof v === "string" && v.length > 40 ? v.substring(0, 40) + "..." : v;
+                        return `${k}=${val}`;
+                    }).join(", ")
+                    : "";
+                step.innerHTML = `<span class="step-icon">${toolIcon}</span><span>调用 <strong>${escapeHtml(event.tool)}</strong>(${escapeHtml(argsStr)})</span>`;
+                stepsContainer.appendChild(step);
+                break;
+            }
+            case "tool_result": {
+                const step = document.createElement("div");
+                step.className = "agent-step agent-step-result";
+                const r = event.result || {};
+                let desc = "";
+                if (r.status === "error") {
+                    desc = `❌ ${r.message}`;
+                } else if (r.found !== undefined) {
+                    desc = `找到 ${r.found} 个结果`;
+                    if (r.titles?.length) desc += `: ${r.titles.slice(0, 3).join(", ")}`;
+                } else if (r.count !== undefined) {
+                    desc = `共 ${r.count} 个标签页`;
+                } else if (r.length !== undefined) {
+                    desc = `已读取 "${r.title}" (${r.length} 字符)`;
+                } else if (r.action === "batch_restore") {
+                    desc = `准备恢复 ${r.count} 个标签页`;
+                } else {
+                    desc = "已完成";
+                }
+                step.innerHTML = `<span class="step-icon">📋</span><span>${desc}</span>`;
+                stepsContainer.appendChild(step);
+                break;
+            }
+            case "action": {
+                if (event.action === "batch_restore" && event.urls?.length) {
+                    // 执行批量恢复
+                    const restoreResult = await chrome.runtime.sendMessage({
+                        type: "batchSummon",
+                        urls: event.urls,
+                    });
+
+                    const actionMsg = document.createElement("div");
+                    actionMsg.className = "agent-step agent-step-action";
+                    actionMsg.innerHTML = `<span class="step-icon">🚀</span><span>已恢复 ${event.count} 个标签页</span>`;
+                    stepsContainer.appendChild(actionMsg);
+
+                    // 刷新 ghost tab 列表
+                    loadGhostTabs();
+                }
+                break;
+            }
+            case "answer": {
+                hasAnswer = true;
+                const answerMsg = document.createElement("div");
+                answerMsg.className = "agent-msg agent-msg-answer";
+                answerMsg.innerHTML = `<div class="agent-msg-label">🤖 Ghost Agent</div><div class="agent-msg-content">${formatAgentAnswer(event.content)}</div>`;
+                if (event.steps_used) {
+                    answerMsg.innerHTML += `<div class="agent-msg-meta">使用了 ${event.steps_used} 步推理</div>`;
+                }
+                agentChat.appendChild(answerMsg);
+                break;
+            }
+            case "error": {
+                const errorStep = document.createElement("div");
+                errorStep.className = "agent-msg agent-msg-error";
+                errorStep.innerHTML = `<div class="agent-msg-content">❌ ${escapeHtml(event.message)}</div>`;
+                agentChat.appendChild(errorStep);
+                break;
+            }
+        }
+    }
+
+    if (!hasAnswer && !events.some(e => e.type === "error")) {
+        const noAnswer = document.createElement("div");
+        noAnswer.className = "agent-msg agent-msg-error";
+        noAnswer.innerHTML = `<div class="agent-msg-content">Agent 未能生成回答，请重试</div>`;
+        agentChat.appendChild(noAnswer);
+    }
+
+    agentChat.scrollTop = agentChat.scrollHeight;
+}
+
+function formatAgentAnswer(text) {
+    // 简单的 markdown-like 格式化
+    return escapeHtml(text)
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\n/g, "<br>");
+}
+
 // ─── Toast 提示 ───────────────────────────────────────────────
 function showToast(message, type = "success") {
     // 移除已有的 toast

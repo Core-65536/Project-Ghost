@@ -54,6 +54,15 @@
           </svg>
           AI 搜索
         </button>
+        <button class="btn-search btn-agent" id="btnAgentChat" title="Agent 智能助手（多步推理）">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
+            <line x1="9" y1="9" x2="9.01" y2="9"></line>
+            <line x1="15" y1="9" x2="15.01" y2="9"></line>
+          </svg>
+          Agent
+        </button>
       </div>
     </section>
 
@@ -64,6 +73,24 @@
         <span>收纳当前标签页</span>
         <kbd>Alt+G</kbd>
       </button>
+    </section>
+
+    <!-- Agent Chat Panel -->
+    <section class="agent-section" id="agentSection" style="display:none;">
+      <div class="agent-header">
+        <h2 class="section-title">
+          <span class="agent-icon">🤖</span>
+          Ghost Agent
+        </h2>
+        <button class="btn-close-agent" id="btnCloseAgent" title="关闭 Agent">✕</button>
+      </div>
+      <div class="agent-chat" id="agentChat">
+        <div class="agent-welcome">
+          <span class="agent-welcome-icon">👻</span>
+          <p>我是 Ghost Agent，你的智能标签页助手</p>
+          <p class="agent-welcome-hint">试试问我："帮我找到所有关于 Python 的文章" 或 "对比 React 和 Vue 的收藏文章"</p>
+        </div>
+      </div>
     </section>
 
     <!-- Search Results -->

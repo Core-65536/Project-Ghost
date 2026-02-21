@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 from models import (
     IndexRequest,
@@ -13,11 +14,13 @@ from models import (
     LLMConfig,
     LLMSearchRequest,
     LLMSearchResponse,
+    AgentChatRequest,
 )
 import embedding_service
 import vector_store
 import llm_service
 import reranker_service
+import agent_service
 
 router = APIRouter(prefix="/api")
 
@@ -173,3 +176,36 @@ async def set_llm_config(config: LLMConfig):
     """更新 LLM 配置。"""
     llm_service.set_config(config)
     return {"status": "ok"}
+
+
+# ─── Agent 对话接口 ────────────────────────────────────────
+
+
+@router.post("/agent-chat")
+async def agent_chat(req: AgentChatRequest):
+    """Agent 对话（SSE 流式响应）。
+
+    实时推送 Agent 的思考过程：
+    - thinking: Agent 正在推理
+    - tool_call: Agent 调用工具
+    - tool_result: 工具执行结果
+    - action: 需要前端执行的动作（如批量恢复标签页）
+    - answer: 最终回答
+    - error: 错误信息
+    """
+
+    async def event_stream():
+        async for event in agent_service.run_agent(req.query):
+            yield event.to_sse()
+        # 发送结束信号
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

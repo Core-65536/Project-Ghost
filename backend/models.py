@@ -60,3 +60,10 @@ class LLMSearchResponse(BaseModel):
     keywords: list[str]
     results: list[SearchResult]
     llm_error: Optional[str] = None
+
+
+# ─── Agent 相关 ────────────────────────────────────────────
+
+class AgentChatRequest(BaseModel):
+    """Agent 对话请求。"""
+    query: str
