@@ -39,21 +39,24 @@
 > 简洁的侧边栏设计，一键收纳，快速搜索。
 
 <!-- 截图1: 主界面 -->
-![主界面](screenshots/main_ui.png)
+<img width="576" height="506" alt="53d3b642f25a14ad1a7abc9b47abcfb7" src="https://github.com/user-attachments/assets/3a57458a-6bbf-422a-a655-a78bfa3ba3c8" />
+
 
 ### AI 搜索结果
 
 > LLM 自动生成多维度关键词，召回最相关的幽灵标签页。
 
 <!-- 截图2: AI 搜索结果 -->
-![AI 搜索结果](screenshots/ai_search.png)
+<img width="553" height="692" alt="51c043904c10f35f5caef3bc2313da7f" src="https://github.com/user-attachments/assets/4e454bc3-4df3-433a-8d2b-b593a1e4a3cc" />
+
 
 ### 实际使用效果
 
 > 在浏览网页时打开侧边栏，即可从幽灵空间中检索相关页面。
 
 <!-- 截图3: 实际使用效果 -->
-![实际使用效果](screenshots/usage_demo.png)
+<img width="1915" height="923" alt="e96cc42de9be8762c2df2e9f7ee42b42" src="https://github.com/user-attachments/assets/8c6c7b13-971c-4c70-8696-89d408625e14" />
+
 
 ---
 
